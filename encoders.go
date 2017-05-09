@@ -3,9 +3,13 @@ package iotmonitor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
+	"strconv"
+
 	"github.com/autodidaddict/iotmonitor/pb"
+	"github.com/gorilla/mux"
 )
 
 type registerRequest struct {
@@ -48,30 +52,56 @@ type telemetryReply struct {
 	Err          string `json:"err,omitempty"`
 }
 
+var errBadRoute = errors.New("bad route")
+
 func decodeRegisterRequest(ctx context.Context, r *http.Request) (interface{}, error) {
 	var req registerRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
 	}
+
 	return req, nil
 }
 
 func decodeUpdateRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		return nil, errBadRoute
+	}
+
 	var req updateRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
 	}
+	realID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	req.DeviceID = realID
 	return req, nil
 }
 
 func decodeTelemetryRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	id, ok := vars["id"]
+	if !ok {
+		return nil, errBadRoute
+	}
+
 	var req telemetryRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return nil, err
 	}
+	realID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	req.DeviceID = realID
+
 	return req, nil
 }
 

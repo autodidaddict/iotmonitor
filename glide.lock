@@ -1,5 +1,5 @@
-hash: 5f821d4a2d062efe7c023be246f36303f375851559e6355749a77d8eb5cc5383
-updated: 2017-05-09T14:19:45.477765269-04:00
+hash: 593d2e1f4598465ab2b0832c6cf3b7fcbeb2ac5ecf6d251b37f3d942f1a0608a
+updated: 2017-05-09T15:46:46.863323813-04:00
 imports:
 - name: github.com/go-kit/kit
   version: fadad6fffe0466b19df9efd9acde5c9a52df5fa4
@@ -7,6 +7,7 @@ imports:
   - endpoint
   - log
   - transport/grpc
+  - transport/http
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
@@ -15,14 +16,18 @@ imports:
   version: 18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8
   subpackages:
   - proto
-  - protoc-gen-go/descriptor
   - ptypes/any
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: golang.org/x/net
   version: feeb485667d1fdabe727840fe00adc22431bc86e
   subpackages:
   - context
+  - context/ctxhttp
   - http2
   - http2/hpack
   - idna
@@ -52,8 +57,6 @@ imports:
   - metadata
   - naming
   - peer
-  - reflection
-  - reflection/grpc_reflection_v1alpha
   - stats
   - status
   - tap
