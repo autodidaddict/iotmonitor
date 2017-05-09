@@ -1,11 +1,24 @@
-hash: 3c6817dc30cd32c59e8349bec6d6f06a07d7bc3a6f4c0f6ad65c73be4c57790a
-updated: 2017-05-09T09:11:15.07503329-04:00
+hash: 5f821d4a2d062efe7c023be246f36303f375851559e6355749a77d8eb5cc5383
+updated: 2017-05-09T14:19:45.477765269-04:00
 imports:
+- name: github.com/go-kit/kit
+  version: fadad6fffe0466b19df9efd9acde5c9a52df5fa4
+  subpackages:
+  - endpoint
+  - log
+  - transport/grpc
+- name: github.com/go-logfmt/logfmt
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+- name: github.com/go-stack/stack
+  version: 7a2f19628aabfe68f0766b59e74d6315f8347d22
 - name: github.com/golang/protobuf
   version: 18c9bb3261723cd5401db4d0c9fbc5c3b6c70fe8
   subpackages:
   - proto
+  - protoc-gen-go/descriptor
   - ptypes/any
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: golang.org/x/net
   version: feeb485667d1fdabe727840fe00adc22431bc86e
   subpackages:
@@ -39,6 +52,8 @@ imports:
   - metadata
   - naming
   - peer
+  - reflection
+  - reflection/grpc_reflection_v1alpha
   - stats
   - status
   - tap

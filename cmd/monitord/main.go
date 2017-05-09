@@ -1,32 +1,72 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
+
+	"google.golang.org/grpc"
 
 	"golang.org/x/net/context"
 
 	"github.com/autodidaddict/iotmonitor"
-	"github.com/autodidaddict/iotmonitor/pb"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"syscall"
+
+	"github.com/autodidaddict/iotmonitor/pb"
 )
 
 const (
 	port = ":50051"
 )
 
+var (
+	gRPCAddr = ":8081"
+	httpAddr = ":8080"
+)
+
 func main() {
-	lis, err := net.Listen("tcp", port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+	ctx := context.Background()
+	srv := iotmonitor.NewService()
+	errChan := make(chan error)
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		errChan <- fmt.Errorf("%s", <-c)
+	}()
+
+	registerEndpoint := iotmonitor.MakeRegisterEndpoint(srv)
+	updateEndpoint := iotmonitor.MakeUpdateEndpoint(srv)
+	telemetryEndpoint := iotmonitor.MakeTelemetryEndpoint(srv)
+	endpoints := iotmonitor.Endpoints{
+		UpdateEndpoint:    updateEndpoint,
+		TelemetryEndpoint: telemetryEndpoint,
+		RegisterEndpoint:  registerEndpoint,
 	}
-	s := grpc.NewServer()
-	pb.RegisterMonitorServer(s, iotmonitor.NewGRPCServer(context.Background()))
-	// Register reflection service on gRPC server.
-	reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
+
+	// HTTP Transport
+	go func() {
+		log.Println("http:", httpAddr)
+		handler := iotmonitor.NewHTTPServer(ctx, endpoints)
+		errChan <- http.ListenAndServe(httpAddr, handler)
+	}()
+
+	// gRPC Transport
+	go func() {
+		listener, err := net.Listen("tcp", gRPCAddr)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		log.Println("grpc:", gRPCAddr)
+		handler := iotmonitor.NewGRPCServer(ctx, endpoints)
+		gRPCServer := grpc.NewServer()
+		pb.RegisterMonitorServer(gRPCServer, handler)
+		errChan <- gRPCServer.Serve(listener)
+	}()
+
+	log.Fatalln(<-errChan)
 }

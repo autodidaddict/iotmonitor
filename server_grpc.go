@@ -1,30 +1,57 @@
 package iotmonitor
 
 import (
-	"fmt"
-
 	"github.com/autodidaddict/iotmonitor/pb"
+	grpctransport "github.com/go-kit/kit/transport/grpc"
 	"golang.org/x/net/context"
 )
 
-type grpcServer struct {
+func NewGRPCServer(ctx context.Context, endpoints Endpoints) pb.MonitorServer {
+	return &grpcServer{
+		register: grpctransport.NewServer(
+			endpoints.RegisterEndpoint,
+			DecodeGRPCRegisterRequest,
+			EncodeGRPCRegisterResponse,
+		),
+		update: grpctransport.NewServer(
+			endpoints.UpdateEndpoint,
+			DecodeGRPCUpdateRequest,
+			EncodeGRPCUpdateResponse,
+		),
+		telemetry: grpctransport.NewServer(
+			endpoints.TelemetryEndpoint,
+			DecodeGRPCTelemetryRequest,
+			EncodeGRPCTelemetryResponse,
+		),
+	}
 }
 
-func NewGRPCServer(ctx context.Context) pb.MonitorServer {
-	return &grpcServer{}
+type grpcServer struct {
+	register  grpctransport.Handler
+	update    grpctransport.Handler
+	telemetry grpctransport.Handler
 }
 
 func (s *grpcServer) RegisterDevice(ctx context.Context, in *pb.RegisterDeviceRequest) (*pb.RegisterDeviceReply, error) {
-	fmt.Printf("Received request to register device name %s, type %v\n", in.Name, in.Devicetype)
-	return &pb.RegisterDeviceReply{Registered: true, Deviceid: 99}, nil
+	_, resp, err := s.register.ServeGRPC(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*pb.RegisterDeviceReply), nil
 }
 
 func (s *grpcServer) UpdateDeviceStatus(ctx context.Context, in *pb.StatusUpdateRequest) (*pb.StatusUpdateReply, error) {
-	fmt.Printf("Received request to update device status %+v\n", in)
-	return &pb.StatusUpdateReply{Acknowledged: true}, nil
+	_, resp, err := s.update.ServeGRPC(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*pb.StatusUpdateReply), nil
 }
 
 func (s *grpcServer) SubmitTelemetry(ctx context.Context, in *pb.TelemetrySubmitRequest) (*pb.TelemetrySubmitReply, error) {
-	fmt.Printf("Received telemetry %+v\n", in)
-	return &pb.TelemetrySubmitReply{Acknowledged: true}, nil
+	_, resp, err := s.update.ServeGRPC(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return resp.(*pb.TelemetrySubmitReply), nil
 }

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package pb;
 
+option go_package = "pb";
+
 service Monitor {
     rpc RegisterDevice (RegisterDeviceRequest) returns (RegisterDeviceReply);
     rpc UpdateDeviceStatus (StatusUpdateRequest) returns (StatusUpdateReply);
@@ -18,6 +20,7 @@ message RegisterDeviceRequest {
 message RegisterDeviceReply {
     bool  registered = 1;
     uint64 deviceid = 2;
+    string err = 3;
 }
 
 message StatusUpdateRequest {
@@ -28,6 +31,7 @@ message StatusUpdateRequest {
 
 message StatusUpdateReply {
     bool acknowledged = 1;
+    string err = 2;
 }
 
 message TelemetrySubmitRequest {
@@ -37,6 +41,7 @@ message TelemetrySubmitRequest {
 
 message TelemetrySubmitReply {
     bool acknowledged = 1;
+    string err = 2;
 }
 
 enum DeviceType {
