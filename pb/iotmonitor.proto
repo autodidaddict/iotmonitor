@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package pb;
+
+service Monitor {
+    rpc RegisterDevice (RegisterDeviceRequest) returns (RegisterDeviceReply);
+    rpc UpdateDeviceStatus (StatusUpdateRequest) returns (StatusUpdateReply);
+    rpc SubmitTelemetry (TelemetrySubmitRequest) returns (TelemetrySubmitReply);
+}
+
+message RegisterDeviceRequest {
+    string name = 1;
+    string serialnumber = 2;
+    string owner = 3;
+    DeviceType devicetype = 4;
+}
+
+message RegisterDeviceReply {
+    bool  registered = 1;
+    uint64 deviceid = 2;
+}
+
+message StatusUpdateRequest {
+    uint64       deviceid = 1;
+    Location    location = 2;
+    uint32      batteryremaining = 3;
+}
+
+message StatusUpdateReply {
+    bool acknowledged = 1;
+}
+
+message TelemetrySubmitRequest {
+    uint64 deviceid = 1;
+    map<string, float> readings = 2;
+}
+
+message TelemetrySubmitReply {
+    bool acknowledged = 1;
+}
+
+enum DeviceType {
+    DRONE = 0;
+    SENSOR = 1;
+}
+
+message Location {
+    float longitude = 1;
+    float latitude = 2;
+    float altitude = 3;
+}
