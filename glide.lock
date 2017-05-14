@@ -1,6 +1,10 @@
-hash: 593d2e1f4598465ab2b0832c6cf3b7fcbeb2ac5ecf6d251b37f3d942f1a0608a
-updated: 2017-05-09T15:46:46.863323813-04:00
+hash: 45938fb6c31b16d9476e6476cce06e1297aba297541134a247591fcdda58b91d
+updated: 2017-05-14T13:04:26.957723143-04:00
 imports:
+- name: github.com/garyburd/redigo
+  version: 8873b2f1995f59d4bcdd2b0dc9858e2cb9bf0c13
+  subpackages:
+  - redis
 - name: github.com/go-kit/kit
   version: fadad6fffe0466b19df9efd9acde5c9a52df5fa4
   subpackages:

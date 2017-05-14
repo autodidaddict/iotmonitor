@@ -37,7 +37,7 @@ func MakeTelemetryEndpoint(srv Service) endpoint.Endpoint {
 		if err != nil {
 			return telemetryReply{Acknowledged: false, Err: err.Error()}, nil
 		}
-		return updateReply{Acknowledged: v}, nil
+		return telemetryReply{Acknowledged: v}, nil
 	}
 }
 

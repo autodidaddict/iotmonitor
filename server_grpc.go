@@ -49,7 +49,7 @@ func (s *grpcServer) UpdateDeviceStatus(ctx context.Context, in *pb.StatusUpdate
 }
 
 func (s *grpcServer) SubmitTelemetry(ctx context.Context, in *pb.TelemetrySubmitRequest) (*pb.TelemetrySubmitReply, error) {
-	_, resp, err := s.update.ServeGRPC(ctx, in)
+	_, resp, err := s.telemetry.ServeGRPC(ctx, in)
 	if err != nil {
 		return nil, err
 	}
