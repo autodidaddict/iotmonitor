@@ -36,13 +36,37 @@ var (
 
 func main() {
 	ctx := context.Background()
-	srv := iotmonitor.NewService()
 	errChan := make(chan error)
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		errChan <- fmt.Errorf("%s", <-c)
 	}()
+
+	var telemetryUpdates, statusUpdates, devicesRegistered metrics.Counter
+	{
+		telemetryUpdates = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "iotmonitor",
+			Name:      "telemetry_updates",
+			Help:      "Total number of telemetry updates received.",
+		}, []string{})
+		statusUpdates = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "iotmonitor",
+			Name:      "status_updates",
+			Help:      "Total number of status updated received.",
+		}, []string{})
+		devicesRegistered = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "iotmonitor",
+			Name:      "devices_registered",
+			Help:      "Total number of devices registered.",
+		}, []string{})
+	}
+
+	var srv iotmonitor.Service
+	{
+		srv = iotmonitor.NewService()
+		srv = iotmonitor.ServiceInstrumentingMiddleware(telemetryUpdates, devicesRegistered, statusUpdates)(srv)
+	}
 
 	var duration metrics.Histogram
 	{

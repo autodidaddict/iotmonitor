@@ -6,6 +6,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
+	"github.com/go-kit/kit/metrics"
 	"golang.org/x/net/context"
 )
 
@@ -14,6 +15,8 @@ type Service interface {
 	UpdateStatus(ctx context.Context, id uint64, lat, long, alt float32, battery uint32) (bool, error)
 	SubmitTelemetry(ctx context.Context, id uint64, readings map[string]float32) (bool, error)
 }
+
+type Middleware func(Service) Service
 
 func NewService() Service {
 	return &monitorService{}
@@ -116,4 +119,38 @@ func (monitorService) SubmitTelemetry(ctx context.Context, id uint64, readings m
 
 func makeTimestamp() int64 {
 	return time.Now().UTC().UnixNano() / (int64(time.Millisecond) / int64(time.Nanosecond))
+}
+
+type serviceInstrumentingMiddleware struct {
+	telemetryUpdates  metrics.Counter
+	devicesRegistered metrics.Counter
+	statusUpdates     metrics.Counter
+	next              Service
+}
+
+func ServiceInstrumentingMiddleware(telemetryUpdates, devicesRegistered, statusUpdates metrics.Counter) Middleware {
+	return func(next Service) Service {
+		return serviceInstrumentingMiddleware{
+			telemetryUpdates:  telemetryUpdates,
+			statusUpdates:     statusUpdates,
+			devicesRegistered: devicesRegistered,
+			next:              next,
+		}
+	}
+}
+
+func (mw serviceInstrumentingMiddleware) RegisterDevice(ctx context.Context, name, owner, deviceType string) (id uint64, err error) {
+	v, err := mw.next.RegisterDevice(ctx, name, owner, deviceType)
+	mw.devicesRegistered.Add(float64(1))
+	return v, err
+}
+func (mw serviceInstrumentingMiddleware) UpdateStatus(ctx context.Context, id uint64, lat, long, alt float32, battery uint32) (bool, error) {
+	v, err := mw.next.UpdateStatus(ctx, id, lat, long, alt, battery)
+	mw.statusUpdates.Add(float64(1))
+	return v, err
+}
+func (mw serviceInstrumentingMiddleware) SubmitTelemetry(ctx context.Context, id uint64, readings map[string]float32) (bool, error) {
+	v, err := mw.next.SubmitTelemetry(ctx, id, readings)
+	mw.telemetryUpdates.Add(float64(1))
+	return v, err
 }
