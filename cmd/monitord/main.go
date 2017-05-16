@@ -17,6 +17,11 @@ import (
 	"syscall"
 
 	"github.com/autodidaddict/iotmonitor/pb"
+	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 const (
@@ -24,8 +29,9 @@ const (
 )
 
 var (
-	gRPCAddr = ":8081"
-	httpAddr = ":8080"
+	gRPCAddr  = ":8081"
+	httpAddr  = ":8080"
+	debugAddr = ":8082"
 )
 
 func main() {
@@ -38,14 +44,49 @@ func main() {
 		errChan <- fmt.Errorf("%s", <-c)
 	}()
 
-	registerEndpoint := iotmonitor.MakeRegisterEndpoint(srv)
-	updateEndpoint := iotmonitor.MakeUpdateEndpoint(srv)
-	telemetryEndpoint := iotmonitor.MakeTelemetryEndpoint(srv)
+	var duration metrics.Histogram
+	{
+		duration = prometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+			Namespace: "iotmonitor",
+			Name:      "request_duration_ns",
+			Help:      "Request dureaction in nanoseconds.",
+		}, []string{"method", "success"})
+	}
+
+	var registerEndpoint endpoint.Endpoint
+	{
+		registerDuration := duration.With("method", "register")
+		registerEndpoint = iotmonitor.MakeRegisterEndpoint(srv)
+		registerEndpoint = iotmonitor.EndpointInstrumentingMiddleware(registerDuration)(registerEndpoint)
+	}
+
+	var updateEndpoint endpoint.Endpoint
+	{
+		updateDuration := duration.With("method", "update")
+		updateEndpoint = iotmonitor.MakeUpdateEndpoint(srv)
+		updateEndpoint = iotmonitor.EndpointInstrumentingMiddleware(updateDuration)(updateEndpoint)
+	}
+
+	var telemetryEndpoint endpoint.Endpoint
+	{
+		telemetryDuration := duration.With("method", "telemetry")
+		telemetryEndpoint = iotmonitor.MakeTelemetryEndpoint(srv)
+		telemetryEndpoint = iotmonitor.EndpointInstrumentingMiddleware(telemetryDuration)(telemetryEndpoint)
+	}
+
 	endpoints := iotmonitor.Endpoints{
 		UpdateEndpoint:    updateEndpoint,
 		TelemetryEndpoint: telemetryEndpoint,
 		RegisterEndpoint:  registerEndpoint,
 	}
+
+	// Debug/Diagnostics Transport
+	go func() {
+		log.Println("Debug http:", debugAddr)
+		m := http.NewServeMux()
+		m.Handle("/metrics", promhttp.Handler())
+		errChan <- http.ListenAndServe(debugAddr, m)
+	}()
 
 	// HTTP Transport
 	go func() {

@@ -3,8 +3,11 @@ package iotmonitor
 import (
 	"context"
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/metrics"
 )
 
 func MakeRegisterEndpoint(srv Service) endpoint.Endpoint {
@@ -38,6 +41,17 @@ func MakeTelemetryEndpoint(srv Service) endpoint.Endpoint {
 			return telemetryReply{Acknowledged: false, Err: err.Error()}, nil
 		}
 		return telemetryReply{Acknowledged: v}, nil
+	}
+}
+
+func EndpointInstrumentingMiddleware(duration metrics.Histogram) endpoint.Middleware {
+	return func(next endpoint.Endpoint) endpoint.Endpoint {
+		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+			defer func(begin time.Time) {
+				duration.With("success", fmt.Sprint(err == nil)).Observe(time.Since(begin).Seconds())
+			}(time.Now())
+			return next(ctx, request)
+		}
 	}
 }
 
